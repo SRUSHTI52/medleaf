@@ -145,6 +145,7 @@ def predict():
 
     try:
         # Fetch image from the internet
+        headers = {'User-Agent': 'Mozilla/5.0'}
         response = requests.get(image_url, timeout=10)
         response.raise_for_status()  # Raise error if request fails
 
