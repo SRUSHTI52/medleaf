@@ -130,29 +130,56 @@ model_mistral = ChatMistralAI(model="mistral-small-latest", temperature=0.3, api
 #         return {"error": "Invalid JSON response from AI"}
 import re
 
+# def get_plant_info(plant_name):
+#     prompt = ChatPromptTemplate.from_template(template)
+#     chain = prompt | model_mistral
+#     response = chain.invoke({"plant_name": plant_name})
+
+#     print("\n--- RAW RESPONSE FROM MISTRAL ---\n")
+#     print(response.content)
+#     print("\n--- END OF RAW RESPONSE ---\n")
+
+#     try:
+#         # Attempt to extract JSON using regex
+#         match = re.search(r'\{.*\}', response.content, re.DOTALL)
+#         if match:
+#             json_str = match.group()
+#             return json.loads(json_str)
+#         else:
+#             print("❌ Could not find JSON object in response.")
+#             return {"error": "No valid JSON object found in Mistral response", "raw_response": response.content}
+#     except json.JSONDecodeError as e:
+#         print("❌ JSONDecodeError:", str(e))
+#         return {"error": f"Invalid JSON response from AI: {str(e)}", "raw_response": response.content}
+
 def get_plant_info(plant_name):
+
     prompt = ChatPromptTemplate.from_template(template)
     chain = prompt | model_mistral
     response = chain.invoke({"plant_name": plant_name})
 
+    raw = response.content.strip()
     print("\n--- RAW RESPONSE FROM MISTRAL ---\n")
-    print(response.content)
+    print(raw)
     print("\n--- END OF RAW RESPONSE ---\n")
 
     try:
-        # Attempt to extract JSON using regex
-        match = re.search(r'\{.*\}', response.content, re.DOTALL)
-        if match:
-            json_str = match.group()
-            return json.loads(json_str)
-        else:
-            print("❌ Could not find JSON object in response.")
-            return {"error": "No valid JSON object found in Mistral response", "raw_response": response.content}
-    except json.JSONDecodeError as e:
-        print("❌ JSONDecodeError:", str(e))
-        return {"error": f"Invalid JSON response from AI: {str(e)}", "raw_response": response.content}
+        # Remove code fences if present (like json\n ... \n)
+        raw = re.sub(r"^json\s*", "", raw)
+        raw = re.sub(r"\s*$", "", raw)
 
+        # Then extract JSON part using greedy match
+        json_start = raw.find('{')
+        json_end = raw.rfind('}') + 1
+        json_str = raw[json_start:json_end]
 
+        return json.loads(json_str)
+    except Exception as e:
+        print(f"❌ JSON parsing error: {e}")
+        return {
+            "error": f"Invalid JSON response from AI: {str(e)}",
+            "raw_response": response.content
+        }
 import requests
 from io import BytesIO
 from PIL import Image
